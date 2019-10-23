@@ -1,0 +1,90 @@
+plugins {
+    id 'org.springframework.boot' version '2.2.0.RELEASE'
+    id 'io.spring.dependency-management' version '1.0.8.RELEASE'
+    id 'com.google.cloud.tools.jib' version '1.7.0'
+    id 'java'
+}
+
+group = 'anthonykim'
+version = '1.0.0'
+sourceCompatibility = '11'
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url 'https://repo.spring.io/milestone' }
+    maven { url "https://plugins.gradle.org/m2/" }
+}
+
+ext {
+    BUILD_VERSION = new Date().format("yyyyMMddHHmmss")
+    set('springCloudVersion', "Hoxton.M3")
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.cloud:spring-cloud-starter-config'
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-hystrix'
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-hystrix-dashboard'
+    implementation 'org.springframework.cloud:spring-cloud-starter-oauth2'
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+    implementation 'org.springframework.cloud:spring-cloud-starter-security'
+    compileOnly 'org.projectlombok:lombok'
+    runtimeOnly 'mysql:mysql-connector-java'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+    }
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
+}
+
+jib {
+    from {
+        image = "openjdk:11-jre-stretch"
+    }
+    to {
+        image = "anthonykim/blog-idm-service"
+        tags = ["${project.version}".toString(), "${BUILD_VERSION}".toString(), "latest"]
+    }
+    container {
+        ports = ["80"]
+        volumes = ["/tmp"]
+        mainClass = "io.anthonykim.idm.BlogIdmServiceApplication"
+        environment = [
+                "TZ"               : "Asia/Seoul",
+                "JAVA_TOOL_OPTIONS": "-Xmx512m -XX:+UseG1GC"
+        ]
+    }
+}
+
+test {
+    useJUnitPlatform {
+        systemProperty "test.profile", "unit"
+    }
+    testLogging {
+        showStandardStreams = true
+    }
+}
+
+task integrationTest(type: Test) {
+    useJUnitPlatform {
+        systemProperty "test.profile", "integration"
+        systemProperty "spring.profiles.active", System.properties['spring.test.profiles.active']
+    }
+    testLogging {
+        showStandardStreams = true
+    }
+}

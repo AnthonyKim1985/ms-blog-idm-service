@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: blog-idm-service
+  cloud:
+    config:
+      uri: http://blog.config-service
+
+server:
+  port: 80
